@@ -1,4 +1,2 @@
+.omc/
 .DS_Store
-*.log
-summary.json
-results/
