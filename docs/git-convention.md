@@ -8,11 +8,8 @@ Cloudwave-Lab 저장소의 브랜치·커밋·PR 규칙. Livith-iOS의 `docs/rul
 | 브랜치 | 역할 |
 |--------|------|
 | `main` | 공유 가능한 상태만. 실습 킷의 기준 소스. |
-| 작업 브랜치 | `feat/`·`fix/`·`docs/`·`refactor/`·`setting/`·`chore/` + 설명(있으면 `#이슈번호`) |
 
-- 작업 브랜치 예: `feat/#3-bottleneck-lab`, `fix/pool-waiters-metric`, `docs/git-convention`
-- `main`에 직접 push 금지. 작업 브랜치에서 개발 → `main`으로 PR·머지.
-- 머지는 **Squash 금지**(히스토리 보존). 머지 후 원격 작업 브랜치 삭제.
+- 파일 변경 작업을 완료하면 `main`에 커밋하고 push한다.
 
 ## 커밋 메시지
 
@@ -39,13 +36,13 @@ Cloudwave-Lab 저장소의 브랜치·커밋·PR 규칙. Livith-iOS의 `docs/rul
 
 ## PR
 
+- 별도 검토나 협업이 필요한 경우에만 PR을 사용한다.
 - 제목: `[Type] 작업 설명` (이슈키는 제목에 안 넣음)
 - 본문 끝에 연결 이슈: `Resolved: #nn`
 - 본문에 무엇을·왜 바꿨는지 두괄식으로. 스크린샷/GIF는 있으면 첨부.
 
 ## 게이트
 
-- 파일 변경 작업을 완료하면 변경 내용을 확인한 뒤 커밋하고 현재 작업 브랜치에 push한다.
+- 파일 변경 작업을 완료하면 변경 내용을 확인한 뒤 커밋하고 `main`에 push한다.
 - 사용자가 커밋·push를 하지 말라고 명시한 경우에는 수행하지 않는다.
-- `main`에 직접 push하지 않는다.
 - 세션/툴 상태(`.omc/`), `.DS_Store` 등은 커밋하지 않는다(`.gitignore`로 차단).
