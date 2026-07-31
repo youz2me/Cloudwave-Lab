@@ -1,0 +1,26 @@
+groups:
+  - name: booking-alerts
+    rules:
+      - alert: BookingLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{route="/book"}[1m]))) > 0.5
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "예매(/book) P95 지연이 0.5초를 넘었다"
+
+      - alert: BookingErrorRateHigh
+        expr: (sum(rate(http_requests_total{route="/book",status!="200"}[2m])) / sum(rate(http_requests_total{route="/book"}[2m]))) > 0.05
+        for: 1m
+        labels:
+          severity: page
+        annotations:
+          summary: "예매(/book) 실패 비율이 5%를 넘었다"
+
+      - alert: DBPoolWaitersSustained
+        expr: avg_over_time(db_pool_waiters[1m]) > 1
+        for: 1m
+        labels:
+          severity: warn
+        annotations:
+          summary: "DB 커넥션 대기가 1분 넘게 지속되고 있다"
