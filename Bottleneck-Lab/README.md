@@ -26,11 +26,34 @@
 
 ## 구성
 
+### 서비스 구성과 흐름
+
+```mermaid
+flowchart LR
+    load["부하 발생기<br/>k6 · Locust · hey · curl"]
+
+    subgraph request["요청 처리 경로"]
+        app["app<br/>FastAPI :8000<br/>/browse · /book · /healthz · /metrics"]
+        db[("Postgres<br/>예매 번호 발급<br/>reserve_seat()")]
+    end
+
+    subgraph observe["관측 경로"]
+        prom["Prometheus :9090<br/>5초마다 /metrics 수집"]
+        grafana["Grafana :3000<br/>Explore에서 PromQL 조회"]
+    end
+
+    load -->|HTTP 부하| app
+    app -->|/book만 DB 사용| db
+    prom -.->|GET /metrics| app
+    grafana -->|PromQL 조회| prom
 ```
-(네가 만든 부하)──HTTP──> app(FastAPI :8000) ──> db(Postgres)
-                             │
-                             └─/metrics─> Prometheus(:9090)  ·  Grafana(:3000)
-```
+
+화살표를 두 종류로 나눠서 보면 된다.
+
+- **요청 처리 경로:** 부하 발생기 → `app` → (`/book`인 경우) `Postgres`
+- **관측 경로:** `Prometheus` → `app:/metrics`, `Grafana` → `Prometheus`
+
+Prometheus와 Grafana는 요청을 대신 처리하는 서비스가 아니다. 부하는 `:8000`의 API에 걸고, `:9090`과 `:3000`은 그 결과를 조회하는 데 사용한다.
 
 | 서비스 | 포트 | 용도 |
 |--------|------|------|
@@ -38,6 +61,25 @@
 | Postgres | (내부) | 예매 처리 |
 | Prometheus | 9090 | 메트릭 수집·질의 |
 | Grafana | 3000 | 관측 도구 (익명 로그인). **대시보드는 안 깔아놨다** — 뭘 볼지는 네가 Explore에서 정한다. |
+
+### API별로 거치는 구성요소
+
+| 부하 대상 | 처리 경로 | 성격 | 실험에서의 용도 |
+|-----------|-----------|------|-----------------|
+| `GET /browse` | 부하 발생기 → app | DB를 사용하지 않는 가벼운 요청 | 앱 자체가 요청을 받을 수 있는지 확인하는 대조군 |
+| `GET /book` | 부하 발생기 → app → DB 커넥션 풀 → Postgres | 좌석 확정을 흉내 내며 DB 커넥션을 일정 시간 사용 | 실제 예매 경로의 처리 한계와 대기 발생 여부 관찰 |
+| `GET /healthz` | 부하 발생기 → app | 앱이 DB 풀을 생성했는지만 확인 | 기동 확인용. 성능 부하 대상으로는 적합하지 않음 |
+| `GET /metrics` | Prometheus → app | 관측 지표 노출 | Prometheus가 수집하는 경로. 실험 부하와 섞지 않음 |
+
+### 어디에 부하를 걸까
+
+목적에 따라 부하 대상을 정한다.
+
+1. **예매 장애를 재현하려면** `/book`에 부하를 건다.
+2. **문제가 앱 전체인지 예매 경로에 한정되는지 비교하려면** 같은 조건으로 `/browse`와 `/book`을 각각 실행한다.
+3. **티켓 오픈 상황을 가깝게 재현하려면** `/browse`가 계속 들어오는 상태에서 `/book` 부하를 계단식으로 높인다.
+
+처음부터 최대 부하를 한 번에 넣기보다, 동시 사용자 수나 요청률을 단계적으로 높이면서 각 단계의 처리량·지연시간·오류율과 DB 풀 지표를 함께 기록하는 편이 처리 한계를 찾기 쉽다. `/browse`와 `/book`을 비교할 때는 부하 도구, 실행 시간, 동시성 또는 요청률을 같게 맞춘다.
 
 ---
 
